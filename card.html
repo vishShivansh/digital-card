@@ -227,56 +227,18 @@
     button.disabled = true;
     button.innerHTML = '⏳ Creating Contact...';
     
-    // Method 1: Use actual .vcf file with Web Share API (no download)
-    if (navigator.share) {
-      try {
-        fetch(p.file)
-          .then(response => response.text())
-          .then(vcardText => {
-            const file = new File([vcardText], p.file, { type: 'text/vcard' });
-            
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-              navigator.share({ 
-                files: [file],
-                title: `Contact: ${p.fn}`,
-                text: `Save ${p.fn} to your contacts`
-              })
-              .then(() => {
-                button.innerHTML = '✅ Shared!';
-                setTimeout(() => {
-                  button.innerHTML = originalText;
-                  button.disabled = false;
-                }, 2000);
-              })
-              .catch((err) => {
-                console.log('Share cancelled:', err);
-                fallbackToClipboard();
-              });
-            } else {
-              fallbackToClipboard();
-            }
-          })
-          .catch(() => {
-            fallbackToClipboard();
-          });
-        return;
-      } catch(e) {
-        console.log('Share API error:', e);
-        fallbackToClipboard();
-      }
-    } else {
-      fallbackToClipboard();
-    }
+    // Direct approach: Use clipboard copy (most reliable)
+    fallbackToClipboard();
     
     function fallbackToClipboard() {
-      // Method 2: Copy contact details to clipboard (no download)
+      // Method 1: Copy contact details to clipboard (no download)
       try {
         const contactText = `${p.fn}
 Co-Founder, BigFat AI Labs
-📱 ${p.tel}
-✉️ ${p.email}
-🌐 bigfat.ai
-📍 World Tower Trade, Sector 16, Noida, U.P.`;
+Phone: ${p.tel}
+Email: ${p.email}
+Website: bigfat.ai
+Address: World Tower Trade, Sector 16, Noida, U.P.`;
         
         navigator.clipboard.writeText(contactText)
           .then(() => {
@@ -297,7 +259,7 @@ Co-Founder, BigFat AI Labs
     }
     
     function fallbackToManual() {
-      // Method 3: Show manual instructions (no download)
+      // Method 2: Show manual instructions (no download)
       button.innerHTML = originalText;
       button.disabled = false;
       showManualDialog();
