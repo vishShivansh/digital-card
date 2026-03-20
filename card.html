@@ -225,13 +225,34 @@
     
     // Show loading state
     button.disabled = true;
-    button.innerHTML = '⏳ Creating Contact...';
+    button.innerHTML = '⏳ Opening Contacts...';
     
-    // Direct approach: Use clipboard copy (most reliable)
-    fallbackToClipboard();
+    // Method 1: Direct vCard file opening (opens contact app directly)
+    try {
+      // Create a direct link to the .vcf file
+      const vcfLink = document.createElement('a');
+      vcfLink.href = p.file;
+      vcfLink.style.display = 'none';
+      document.body.appendChild(vcfLink);
+      vcfLink.click();
+      document.body.removeChild(vcfLink);
+      
+      button.innerHTML = '📲 Opening Contacts...';
+      
+      // Reset after delay
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Direct contact failed:', error);
+      // Fallback to clipboard
+      fallbackToClipboard();
+    }
     
     function fallbackToClipboard() {
-      // Method 1: Copy contact details to clipboard (no download)
+      // Method 2: Copy contact details to clipboard (backup)
       try {
         const contactText = `${p.fn}
 Co-Founder, BigFat AI Labs
@@ -259,7 +280,7 @@ Address: World Tower Trade, Sector 16, Noida, U.P.`;
     }
     
     function fallbackToManual() {
-      // Method 2: Show manual instructions (no download)
+      // Method 3: Show manual instructions (final fallback)
       button.innerHTML = originalText;
       button.disabled = false;
       showManualDialog();
