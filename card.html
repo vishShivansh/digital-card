@@ -227,41 +227,103 @@
     button.disabled = true;
     button.innerHTML = '⏳ Creating Contact...';
     
-    // Create complete vCard with all details
-    const vcard = makeVCard(p);
+    // Method 1: Use actual .vcf file with Web Share API (no download)
+    if (navigator.share) {
+      try {
+        fetch(p.file)
+          .then(response => response.text())
+          .then(vcardText => {
+            const file = new File([vcardText], p.file, { type: 'text/vcard' });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              navigator.share({ 
+                files: [file],
+                title: `Contact: ${p.fn}`,
+                text: `Save ${p.fn} to your contacts`
+              })
+              .then(() => {
+                button.innerHTML = '✅ Shared!';
+                setTimeout(() => {
+                  button.innerHTML = originalText;
+                  button.disabled = false;
+                }, 2000);
+              })
+              .catch((err) => {
+                console.log('Share cancelled:', err);
+                fallbackToClipboard();
+              });
+            } else {
+              fallbackToClipboard();
+            }
+          })
+          .catch(() => {
+            fallbackToClipboard();
+          });
+        return;
+      } catch(e) {
+        console.log('Share API error:', e);
+        fallbackToClipboard();
+      }
+    } else {
+      fallbackToClipboard();
+    }
     
-    // Method 1: Try direct vCard URL (most reliable for auto-save)
-    try {
-      const encodedVCard = encodeURIComponent(vcard);
-      const contactUrl = `data:text/vcard;charset=utf-8,${encodedVCard}`;
-      
-      // Create a temporary link and click it
-      const tempLink = document.createElement('a');
-      tempLink.href = contactUrl;
-      tempLink.style.display = 'none';
-      document.body.appendChild(tempLink);
-      tempLink.click();
-      document.body.removeChild(tempLink);
-      
-      button.innerHTML = '📲 Opening Contacts...';
-      
-      // Reset after delay
-      setTimeout(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-      }, 3000);
-      
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      // Fallback to custom dialog
+    function fallbackToClipboard() {
+      // Method 2: Copy contact details to clipboard (no download)
+      try {
+        const contactText = `${p.fn}
+Co-Founder, BigFat AI Labs
+📱 ${p.tel}
+✉️ ${p.email}
+🌐 bigfat.ai
+📍 World Tower Trade, Sector 16, Noida, U.P.`;
+        
+        navigator.clipboard.writeText(contactText)
+          .then(() => {
+            button.innerHTML = '📋 Copied!';
+            setTimeout(() => {
+              button.innerHTML = originalText;
+              button.disabled = false;
+              showClipboardDialog();
+            }, 1500);
+          })
+          .catch(() => {
+            fallbackToManual();
+          });
+          
+      } catch (error) {
+        fallbackToManual();
+      }
+    }
+    
+    function fallbackToManual() {
+      // Method 3: Show manual instructions (no download)
       button.innerHTML = originalText;
       button.disabled = false;
-      showDialog();
+      showManualDialog();
     }
   }
 
+  function showClipboardDialog() {
+    const dialog = document.getElementById('customDialog');
+    dialog.querySelector('.dialog-title').textContent = 'Contact Copied!';
+    dialog.querySelector('.dialog-message').textContent = 'Contact details copied to clipboard. Open your contacts app and paste to create new contact.';
+    dialog.querySelector('.dialog-btn-primary').textContent = 'Got it';
+    dialog.querySelector('.dialog-btn-primary').onclick = closeDialog;
+    dialog.classList.add('active');
+  }
+
+  function showManualDialog() {
+    const dialog = document.getElementById('customDialog');
+    dialog.querySelector('.dialog-title').textContent = 'Create Contact Manually';
+    dialog.querySelector('.dialog-message').textContent = 'Please open your contacts app and add the details manually, or tap below to call the number.';
+    dialog.querySelector('.dialog-btn-primary').textContent = 'Call Number';
+    dialog.querySelector('.dialog-btn-primary').onclick = openPhoneAndSave;
+    dialog.classList.add('active');
+  }
+
   function showDialog() {
-    document.getElementById('customDialog').classList.add('active');
+    showManualDialog();
   }
 
   function closeDialog() {
