@@ -167,11 +167,11 @@
 <!-- CUSTOM DIALOG -->
 <div class="dialog-overlay" id="customDialog">
   <div class="dialog-box">
-    <div class="dialog-title">Add Contact Manually?</div>
-    <div class="dialog-message">Auto-add failed. Would you like us to open the phone dialer with the number so you can save the contact?</div>
+    <div class="dialog-title">Auto-Add Failed</div>
+    <div class="dialog-message">We couldn't create the contact automatically. Would you like to call the number so you can save it manually?</div>
     <div class="dialog-buttons">
       <button class="dialog-btn dialog-btn-secondary" onclick="closeDialog()">Cancel</button>
-      <button class="dialog-btn dialog-btn-primary" onclick="openPhoneAndSave()">Open Phone</button>
+      <button class="dialog-btn dialog-btn-primary" onclick="openPhoneAndSave()">Call Number</button>
     </div>
   </div>
 </div>
@@ -225,27 +225,43 @@
     
     // Show loading state
     button.disabled = true;
-    button.innerHTML = '⏳ Opening...';
+    button.innerHTML = '⏳ Creating Contact...';
     
-    // Direct phone call approach
+    // Create complete vCard with all details
+    const vcard = makeVCard(p);
+    
+    // Method 1: Try direct vCard URL (most reliable for auto-save)
     try {
-      window.location.href = `tel:${p.tel}`;
-      button.innerHTML = '📲 Opening Phone...';
+      const encodedVCard = encodeURIComponent(vcard);
+      const contactUrl = `data:text/vcard;charset=utf-8,${encodedVCard}`;
       
-      // Reset button after delay
+      // Create a temporary link and click it
+      const tempLink = document.createElement('a');
+      tempLink.href = contactUrl;
+      tempLink.style.display = 'none';
+      document.body.appendChild(tempLink);
+      tempLink.click();
+      document.body.removeChild(tempLink);
+      
+      button.innerHTML = '📲 Opening Contacts...';
+      
+      // Reset after delay
       setTimeout(() => {
         button.innerHTML = originalText;
         button.disabled = false;
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
-      console.error('Phone open failed:', error);
-      button.innerHTML = '❌ Failed';
-      setTimeout(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-      }, 2000);
+      console.error('Auto-save failed:', error);
+      // Fallback to custom dialog
+      button.innerHTML = originalText;
+      button.disabled = false;
+      showDialog();
     }
+  }
+
+  function showDialog() {
+    document.getElementById('customDialog').classList.add('active');
   }
 
   function closeDialog() {
